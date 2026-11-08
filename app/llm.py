@@ -41,20 +41,57 @@ def online():
     return bool(api_key())
 
 
+NOT_CHAT = ("embed", "bge", "e5-", "whisper", "tts", "chatterbox", "speech", "audio", "voice", "stable-diffusion",
+            "sdxl", "flux", "image", "vision-only", "rerank", "guard", "ocr", "transcrib")
+PREFER = ("llama-3.3-70b", "llama-3.1-70b", "gpt-oss", "qwen3", "qwen2.5-72b", "kimi", "deepseek-v3",
+          "mistral-small", "llama", "qwen", "mistral", "deepseek")
+
+
+def _list_models():
+    r = httpx.get(f"{BASE}/models", headers={"Authorization": f"Bearer {api_key()}"}, timeout=15)
+    r.raise_for_status()
+    data = r.json()
+    items = data.get("data", data) if isinstance(data, dict) else data
+    return [m["id"] if isinstance(m, dict) else str(m) for m in items]
+
+
+def _candidates(ids):
+    chat = [i for i in ids if not any(x in i.lower() for x in NOT_CHAT)]
+
+    def rank(i):
+        low = i.lower()
+        for n, p in enumerate(PREFER):
+            if p in low:
+                return (n, "coder" in low, i)
+        return (len(PREFER), "coder" in low, i)
+    return sorted(chat, key=rank)
+
+
+def _probe(model):
+    body = {"model": model, "messages": [{"role": "user", "content": 'Reply with {"ok": true}'}],
+            "max_tokens": 20}
+    r = httpx.post(f"{BASE}/chat/completions", json=body,
+                   headers={"Authorization": f"Bearer {api_key()}"}, timeout=60)
+    return r.status_code == 200 and bool(r.json().get("choices"))
+
+
 def model_name():
+    """Pick a chat model: the configured one, else the best listed chat model that answers."""
     global _model
     if not online():
         return "offline-rules"
     if not _model:
         try:
-            r = httpx.get(f"{BASE}/models", headers={"Authorization": f"Bearer {api_key()}"}, timeout=15)
-            r.raise_for_status()
-            ids = [m["id"] for m in r.json().get("data", [])]
-            chat = [i for i in ids if "instruct" in i.lower() or "chat" in i.lower()] or ids
-            _model = chat[0]
+            for m in _candidates(_list_models())[:8]:
+                try:
+                    if _probe(m):
+                        _model = m
+                        break
+                except Exception:
+                    continue
         except Exception:
-            _model = "unknown"
-    return _model
+            pass
+    return _model or "unknown"
 
 
 def chat_json(system, user, max_tokens=900):
@@ -67,9 +104,11 @@ def chat_json(system, user, max_tokens=900):
         "max_tokens": max_tokens,
     }
     r = httpx.post(f"{BASE}/chat/completions", json=body,
-                   headers={"Authorization": f"Bearer {api_key()}"}, timeout=60)
-    r.raise_for_status()
-    text = r.json()["choices"][0]["message"]["content"]
+                   headers={"Authorization": f"Bearer {api_key()}"}, timeout=90)
+    if r.status_code >= 400:
+        raise RuntimeError(f"{r.status_code} from model {body['model']}: {r.text[:200]}")
+    text = r.json()["choices"][0]["message"]["content"] or ""
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S)
     m = re.search(r"\{.*\}", text, re.S)
     return json.loads(m.group(0) if m else text), body["model"]
 
