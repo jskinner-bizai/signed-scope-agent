@@ -7,8 +7,9 @@ SSA_REPO="${SSA_REPO:-https://github.com/jskinner-bizai/signed-scope-agent.git}"
 DIR=/opt/ssa
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -y
-apt-get install -y docker.io git python3-venv python3-pip caddy curl
+APT="apt-get -o DPkg::Lock::Timeout=600"
+$APT update -y
+$APT install -y docker.io git python3-venv python3-pip caddy curl
 systemctl enable --now docker
 
 [ -d "$DIR/.git" ] || git clone "$SSA_REPO" "$DIR"
