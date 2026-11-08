@@ -31,6 +31,17 @@ def log(event):
         f.write(json.dumps(event) + "\n")
 
 
+class NoFollow(urllib.request.HTTPRedirectHandler):
+    """Never follow a redirect inside the proxy. The 3xx goes back to the sandbox,
+    so the next hop is a new request that is checked against the scope again."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+OPENER = urllib.request.build_opener(NoFollow())
+
+
 def host_allowed(host, scope):
     host = (host or "").lower().split(":")[0]
     for allowed in scope.get("allowed_domains", []):
@@ -77,26 +88,35 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 target += "?" + url.query
         else:
             target = self.path
+        location = None
         try:
             req = urllib.request.Request(target, method=self.command,
                                          headers={"User-Agent": "signed-scope-sandbox"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with OPENER.open(req, timeout=10) as resp:
                 data = resp.read(2_000_000)
                 status = resp.status
                 ctype = resp.headers.get("Content-Type", "application/octet-stream")
         except urllib.error.HTTPError as e:
             data, status, ctype = e.read(), e.code, "text/plain"
+            location = e.headers.get("Location") if 300 <= e.code < 400 else None
         except Exception as e:  # upstream failure
             log({"kind": "network", "method": self.command, "url": self.path,
                  "host": host, "verdict": "error", "reason": str(e)[:200]})
             self.send_response(502)
             self.end_headers()
             return
-        log({"kind": "network", "method": self.command, "url": self.path,
-             "host": host, "verdict": "allowed", "status": status, "bytes": len(data)})
+        event = {"kind": "network", "method": self.command, "url": self.path,
+                 "host": host, "verdict": "allowed", "status": status, "bytes": len(data)}
+        if location:
+            location = urllib.parse.urljoin(self.path, location)
+            event["redirect_to"] = location
+        log(event)
         self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("X-Scope-Verdict", "allowed")
+        if location:
+            # Passed back, not followed: the next hop is checked like any other request.
+            self.send_header("Location", location)
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
