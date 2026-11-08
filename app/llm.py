@@ -177,7 +177,11 @@ def _clamp(s):
     s["memory_mb"] = min(int(s.get("memory_mb", 256)), 512)
     s["wall_seconds"] = min(int(s.get("wall_seconds", 20)), 60)
     s["writable_paths"] = ["/work"]
-    s.setdefault("human_approval_steps", ["Any domain not listed here"])
+    steps = [str(x) for x in (s.get("human_approval_steps") or []) if str(x).strip()]
+    for must in ("Any domain not listed here", "Submitting any form"):
+        if not any(must.lower()[:12] in x.lower() for x in steps):
+            steps.append(must)
+    s["human_approval_steps"] = steps[:4]
     return s
 
 
