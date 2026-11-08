@@ -316,10 +316,26 @@ def setup_key(body: SetupKey):
     llm.save_key(body.key)
     try:
         model = llm.model_name()
-        out, used = llm.chat_json("You are a connectivity check.", 'Return {"ok": true}.', max_tokens=20)
+        out, used = llm.chat_json("You are a connectivity check.", 'Return {"ok": true}.', max_tokens=300)
         return {"saved": True, "model": used, "test": out}
     except Exception as e:
         return {"saved": True, "model": llm.model_name(), "test_error": f"{type(e).__name__}: {str(e)[:200]}"}
+
+
+@app.get("/api/diag")
+def diag(token: str = ""):
+    """Owner-only model check. Guarded by the same setup token. Never returns the key."""
+    if not _setup_token() or token != _setup_token():
+        raise HTTPException(404, "not found")
+    out = {"online": llm.online(), "model": llm.model_name()}
+    try:
+        out["scope_test"], _ = llm.chat_json(
+            "You plan sandboxed agent runs.",
+            "Supplier sites: a.demo, b.demo. Return keys allowed_domains (list) and rationale (one sentence).")
+    except Exception as e:
+        out["error"] = f"{type(e).__name__}: {str(e)[:300]}"
+    out["last_reply"] = dict(llm._last)
+    return out
 
 
 @app.get("/verify.py", response_class=PlainTextResponse)

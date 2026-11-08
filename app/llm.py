@@ -94,23 +94,49 @@ def model_name():
     return _model or "unknown"
 
 
-def chat_json(system, user, max_tokens=900):
+_last = {}
+
+
+def _extract_json(text):
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S)
+    if "<think>" in text:
+        text = text.split("<think>")[0]
+    for block in re.findall(r"```(?:json)?\s*(.*?)```", text, re.S):
+        try:
+            return json.loads(block)
+        except ValueError:
+            pass
+    dec = json.JSONDecoder()
+    for i, ch in enumerate(text):
+        if ch == "{":
+            try:
+                obj, _ = dec.raw_decode(text[i:])
+                if isinstance(obj, dict):
+                    return obj
+            except ValueError:
+                continue
+    raise ValueError("no JSON object in model reply: " + text[:120].replace("\n", " "))
+
+
+def chat_json(system, user, max_tokens=1500):
     """Ask the model for a JSON object. Returns (dict, model_used)."""
     body = {
         "model": model_name(),
-        "messages": [{"role": "system", "content": system + "\nAnswer with one JSON object only."},
-                     {"role": "user", "content": user}],
+        "messages": [{"role": "system", "content": system + "\nAnswer with one JSON object only, no other text."},
+                     {"role": "user", "content": user + "\n/no_think"}],
         "temperature": 0.1,
         "max_tokens": max_tokens,
     }
     r = httpx.post(f"{BASE}/chat/completions", json=body,
-                   headers={"Authorization": f"Bearer {api_key()}"}, timeout=90)
+                   headers={"Authorization": f"Bearer {api_key()}"}, timeout=120)
     if r.status_code >= 400:
         raise RuntimeError(f"{r.status_code} from model {body['model']}: {r.text[:200]}")
-    text = r.json()["choices"][0]["message"]["content"] or ""
-    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S)
-    m = re.search(r"\{.*\}", text, re.S)
-    return json.loads(m.group(0) if m else text), body["model"]
+    choice = r.json()["choices"][0]
+    msg = choice.get("message", {})
+    text = msg.get("content") or ""
+    _last.update(model=body["model"], finish=choice.get("finish_reason"), head=text[:400],
+                 reasoning=bool(msg.get("reasoning_content") or msg.get("reasoning")))
+    return _extract_json(text), body["model"]
 
 
 # ---------------------------------------------------------------- tasks
