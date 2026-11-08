@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signed Scope Agent</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2a3340;--text:#e6edf3;--muted:#8b98a8;
+--blue:#4ea1ff;--green:#3fb950;--red:#ff6b6b;--amber:#e3b341;--purple:#b392f0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--line)}
+header h1{font-size:20px;margin:0;letter-spacing:.2px}
+header h1 span{color:var(--blue)}
+.badge{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.badge.on{color:var(--green);border-color:#2b5a35}
+main{display:grid;grid-template-columns:420px 1fr;gap:18px;padding:18px 24px;max-width:1500px;margin:0 auto}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 12px}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+textarea,input{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit}
+textarea{min-height:84px;resize:vertical}
+button{background:var(--blue);color:#05111f;border:0;border-radius:6px;padding:9px 14px;font-weight:600;cursor:pointer;font:inherit;font-weight:600}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+button.danger{background:var(--red);color:#1a0505}
+button:disabled{opacity:.45;cursor:default}
+.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}
+.kv div:nth-child(odd){color:var(--muted)}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 7px;margin:2px 4px 2px 0;font:13px ui-monospace,Menlo,monospace}
+.hash{font:12px ui-monospace,Menlo,monospace;color:var(--muted);word-break:break-all}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat b{display:block;font-size:26px}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.red b{color:var(--red)}.stat.green b{color:var(--green)}
+#timeline{max-height:520px;overflow:auto;font-size:13.5px}
+.ev{display:grid;grid-template-columns:54px 104px 1fr;gap:8px;padding:6px 4px;border-bottom:1px solid #1f2731}
+.ev .t{color:var(--muted);font:12px ui-monospace,Menlo,monospace;padding-top:2px}
+.ev .k{font:11px ui-monospace,Menlo,monospace;text-transform:uppercase;padding:2px 6px;border-radius:4px;height:fit-content;text-align:center;background:var(--panel2);color:var(--muted)}
+.k.containment{background:#3d1416;color:var(--red)}
+.k.network.blocked{background:#3d1416;color:var(--red)}
+.k.network.allowed{background:#13301c;color:var(--green)}
+.k.scope,.k.scope_request{background:#132743;color:var(--blue)}
+.k.sandbox{background:#2a1f45;color:var(--purple)}
+.k.step{background:#2c2610;color:var(--amber)}
+.k.error{background:#3d1416;color:var(--red)}
+.ev.containment{background:#1f1012}
+.ev pre{margin:4px 0 0;white-space:pre-wrap;color:#f3b6b6;font:12px ui-monospace,Menlo,monospace}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+.flag{color:var(--red);font-size:12px}
+.ok{color:var(--green)}
+#scopeReq{border-color:var(--blue);box-shadow:0 0 0 2px #1d3d66}
+.hidden{display:none}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<header>
+  <h1><span>Signed Scope</span> Agent</h1>
+  <div class="row" style="margin:0;align-items:center">
+    <a href="/verify" style="font-size:13px">Verify a receipt</a>
+    <span id="modelBadge" class="badge">checking model</span>
+  </div>
+</header>
+<main>
+<section>
+  <div class="card">
+    <h2>1. Task</h2>
+    <label>What should the agent do?</label>
+    <textarea id="task"></textarea>
+    <label>Supplier sites (one per line)</label>
+    <textarea id="suppliers" style="min-height:70px"></textarea>
+    <div class="row"><button id="proposeBtn">Propose scope</button></div>
+    <div class="note">The agent can only propose. Nothing runs until a person approves the scope.</div>
+  </div>
+
+  <div class="card hidden" id="scopeCard">
+    <h2>2. Proposed scope</h2>
+    <div class="kv" id="scopeKv"></div>
+    <div class="note" id="scopeWhy"></div>
+    <div class="row"><button id="approveBtn">Approve scope and run</button></div>
+    <div class="hash" id="scopeHash" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card hidden" id="scopeReq">
+    <h2>Scope change requested</h2>
+    <div id="scopeReqText"></div>
+    <div class="row">
+      <button id="allowBtn">Allow this domain</button>
+      <button id="denyBtn" class="ghost">Decline</button>
+    </div>
+    <div class="note">If you allow it, the scope is amended, rehashed and the change is written into the receipt.</div>
+  </div>
+
+  <div class="card hidden" id="receiptCard">
+    <h2>4. Signed receipt</h2>
+    <div class="kv" id="receiptKv"></div>
+    <div class="row">
+      <a id="receiptLink" download><button class="ghost">Download receipt</button></a>
+      <a href="/verify"><button class="ghost">Verify it</button></a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="stats">
+    <div class="stat"><b id="sStatus">idle</b><span>run status</span></div>
+    <div class="stat red"><b id="sBlocked">0</b><span>network attempts blocked</span></div>
+    <div class="stat red"><b id="sContain">0</b><span>containment events</span></div>
+    <div class="stat"><b id="sProc">0</b><span>sandboxed processes</span></div>
+  </div>
+  <div class="card">
+    <h2>3. Live record</h2>
+    <div id="timeline"><div class="note">Every process, file write and network attempt appears here, with its verdict.</div></div>
+  </div>
+  <div class="card">
+    <h2>Results</h2>
+    <div id="results"><div class="note">Supplier comparison appears as each one is checked.</div></div>
+  </div>
+</section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let run = null, since = 0, timer = null, counts = {blocked:0, contain:0, proc:0};
+
+fetch('/api/health').then(r=>r.json()).then(h=>{
+  const b=$('modelBadge');
+  b.textContent = h.online ? 'Vultr Serverless Inference: ' + h.model : 'offline rules (no inference key)';
+  if(h.online) b.classList.add('on');
+});
+
+$('task').value = "Vendor check for M8x40 zinc hex bolts: for each supplier, confirm ISO 9001, payment terms, minimum order and lead time, and normalise the unit price from their price sheet.";
+$('suppliers').value = "acme-industrial.demo\nborealis-parts.demo\ncobalt-fasteners.demo";
+
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function chips(a){return (a||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join('')}
+
+$('proposeBtn').onclick = async () => {
+  $('proposeBtn').disabled = true; $('proposeBtn').textContent = 'Planning...';
+  const suppliers = $('suppliers').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const r = await fetch('/api/runs',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({task:$('task').value, suppliers})});
+  run = await r.json(); since = 0;
+  $('timeline').innerHTML=''; $('results').innerHTML=''; counts={blocked:0,contain:0,proc:0};
+  showScope(run.scope, run.scope_model);
+  ingest(run.events); since = run.events.length;
+  $('proposeBtn').textContent = 'Propose scope'; $('proposeBtn').disabled = false;
+  $('sStatus').textContent = 'proposed';
+};
+
+function showScope(s, model){
+  $('scopeCard').classList.remove('hidden');
+  $('scopeKv').innerHTML = `
+    <div>Domains</div><div>${chips(s.allowed_domains)}</div>
+    <div>Methods</div><div>${chips(s.allowed_methods)}</div>
+    <div>Writable paths</div><div>${chips(s.writable_paths)}</div>
+    <div>Caps</div><div>${s.cpu} CPU, ${s.memory_mb} MB, ${s.wall_seconds} s per process</div>
+    <div>Needs a person</div><div>${(s.human_approval_steps||[]).map(esc).join('<br>')}</div>
+    <div>Planned by</div><div>${esc(model)}</div>`;
+  $('scopeWhy').textContent = s.rationale || '';
+  $('approveBtn').disabled = false;
+}
+
+$('approveBtn').onclick = async () => {
+  $('approveBtn').disabled = true;
+  const r = await fetch(`/api/runs/${run.id}/approve`,{method:'POST'});
+  const j = await r.json();
+  $('scopeHash').textContent = 'scope sha256 ' + j.scope_hash;
+  poll();
+};
+
+async function decide(approve){
+  $('allowBtn').disabled = $('denyBtn').disabled = true;
+  await fetch(`/api/runs/${run.id}/scope-change`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({approve})});
+}
+$('allowBtn').onclick = () => decide(true);
+$('denyBtn').onclick = () => decide(false);
+
+function ingest(events){
+  const tl = $('timeline');
+  for(const e of events){
+    let cls = e.kind;
+    if(e.kind==='network'){ cls += ' ' + (e.data.verdict||''); if(e.data.verdict==='blocked') counts.blocked++; }
+    if(e.kind==='containment') counts.contain++;
+    if(e.kind==='process') counts.proc++;
+    const d = document.createElement('div');
+    d.className = 'ev ' + (e.kind==='containment'?'containment':'');
+    let extra = '';
+    if(e.kind==='containment' && e.data.quote) extra = `<pre>"${esc(e.data.quote)}"</pre>`;
+    if(e.kind==='containment' && e.data.stdout_head) extra = `<pre>${esc(e.data.stdout_head)}</pre>`;
+    if(e.kind==='containment' && e.data.blocked) extra = `<pre>${e.data.blocked.map(b=>esc(b.url)).join('\n')}</pre>`;
+    d.innerHTML = `<div class="t">${e.t.toFixed(1)}s</div><div class="k ${cls}">${esc(e.kind.replace('_',' '))}</div><div>${esc(e.message)}${extra}</div>`;
+    tl.appendChild(d);
+  }
+  if(events.length) tl.scrollTop = tl.scrollHeight;
+  $('sBlocked').textContent = counts.blocked; $('sContain').textContent = counts.contain; $('sProc').textContent = counts.proc;
+}
+
+function showResults(res){
+  const rows = Object.entries(res);
+  if(!rows.length) return;
+  let h = '<table><tr><th>Supplier</th><th>ISO 9001</th><th>Payment</th><th>Min order</th><th>Lead time</th><th>M8x40 unit price</th><th>Notes</th></tr>';
+  for(const [sup, r] of rows){
+    const t = r.terms || {};
+    const m8 = (r.prices||[]).find(p=>p.sku==='M8-40-ZN');
+    const price = m8 && m8.unit_price_usd!=null ? '$'+Number(m8.unit_price_usd).toFixed(3) : (r.prices ? '<span class="flag">not comparable</span>' : '');
+    const notes = [];
+    if(r.injection_flagged) notes.push('<span class="flag">prompt injection ignored</span>');
+    if(r.registry_check) notes.push('<span class="ok">certificate confirmed at registry</span>');
+    if(r.price_note) notes.push(esc(r.price_note));
+    if(r.error) notes.push('<span class="flag">'+esc(r.error)+'</span>');
+    h += `<tr><td>${esc(sup)}</td><td>${esc(t.iso_9001)}</td><td>${esc(t.payment_terms)}</td><td>${esc(t.minimum_order)}</td><td>${esc(t.lead_time)}</td><td>${price}</td><td>${notes.join('<br>')}</td></tr>`;
+  }
+  $('results').innerHTML = h + '</table>';
+}
+
+function poll(){
+  clearTimeout(timer);
+  timer = setTimeout(async () => {
+    const j = await (await fetch(`/api/runs/${run.id}?since=${since}`)).json();
+    ingest(j.events); since += j.events.length;
+    $('sStatus').textContent = j.status.replace('_',' ');
+    showResults(j.results);
+    if(j.pending_scope_change){
+      $('scopeReq').classList.remove('hidden');
+      $('allowBtn').disabled = $('denyBtn').disabled = false;
+      $('scopeReqText').innerHTML = `The agent wants to visit <span class="chip">${esc(j.pending_scope_change.domain)}</span>, which is not in the approved scope.<div class="note">${esc(j.pending_scope_change.reason)}</div>`;
+    } else $('scopeReq').classList.add('hidden');
+    if(j.scope_hash) $('scopeHash').textContent = 'scope sha256 ' + j.scope_hash;
+    if(j.receipt_ready){
+      const rc = await (await fetch(`/api/receipts/${run.id}`)).json();
+      $('receiptCard').classList.remove('hidden');
+      $('receiptKv').innerHTML = `<div>Run</div><div>${esc(rc.receipt.run_id)}</div>
+        <div>Events</div><div>${rc.receipt.events.length}</div>
+        <div>Sandbox destroyed</div><div class="${rc.receipt.sandbox_destroyed?'ok':'flag'}">${rc.receipt.sandbox_destroyed}</div>
+        <div>Model</div><div>${esc(rc.receipt.model)}</div>
+        <div>Signature</div><div class="hash">ed25519 ${esc(rc.signature.slice(0,44))}...</div>`;
+      $('receiptLink').href = `/api/receipts/${run.id}`; $('receiptLink').download = `receipt-${run.id}.json`;
+      return;
+    }
+    poll();
+  }, 700);
+}
+</script>
+</body>
+</html>
