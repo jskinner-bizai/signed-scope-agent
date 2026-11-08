@@ -30,6 +30,7 @@ cat > /etc/ssa.env <<ENV
 SSA_DATA=$DIR/data
 SANDBOX_IMAGE=python:3.12-slim
 DEMO_UPSTREAM=http://host.docker.internal:8000
+DEMO_PACE=6
 ENV
 
 cat > /etc/systemd/system/ssa.service <<UNIT

@@ -26,6 +26,8 @@ STATIC = pathlib.Path(__file__).parent / "static"
 RUNS = {}
 LOCK = threading.Lock()
 
+# Optional pause between suppliers, so a live presentation can follow along. 0 by default.
+DEMO_PACE = float(os.environ.get("DEMO_PACE", "0"))
 DEFAULT_SUPPLIERS = ["acme-industrial.demo", "borealis-parts.demo", "cobalt-fasteners.demo"]
 DEFAULT_TASK = ("Vendor check for M8x40 zinc hex bolts: for each supplier, confirm ISO 9001, payment terms, "
                 "minimum order and lead time, and normalise the unit price from their price sheet.")
@@ -86,7 +88,9 @@ def agent(run: Run):
     sb = Sandbox(run.id, run.scope, run.emit)
     try:
         sb.build()
-        for supplier in run.suppliers:
+        for i, supplier in enumerate(run.suppliers):
+            if i and DEMO_PACE:
+                time.sleep(DEMO_PACE)
             run.emit("step", f"Checking {supplier}.")
             page = sb.fetch(f"http://{supplier}/")
             if page.get("status") != 200:

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Signed Scope Agent</title>
+<style>
+@page{size:1920px 1080px;margin:0}
+:root{--bg:#0b1020;--panel:#141b2e;--line:#26314a;--text:#eef2f8;--muted:#93a1b8;--blue:#4ea1ff;--green:#3fb950;--red:#ff6b6b;--amber:#e3b341;--vultr:#007bfc}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,"Inter Display",system-ui,sans-serif}
+.slide{width:1920px;height:1080px;padding:110px 130px;position:relative;overflow:hidden;page-break-after:always;
+  background:radial-gradient(1200px 700px at 85% 10%,#13244a 0%,transparent 60%),var(--bg)}
+.slide:last-child{page-break-after:auto}
+.kicker{font-size:26px;letter-spacing:4px;text-transform:uppercase;color:var(--blue);font-weight:600;margin-bottom:26px}
+h1{font-size:120px;line-height:1.02;margin:0 0 34px;letter-spacing:-2px;font-weight:700}
+h2{font-size:72px;line-height:1.08;margin:0 0 48px;letter-spacing:-1px;font-weight:700}
+p,li{font-size:36px;line-height:1.45;color:#d5dcea}
+.muted{color:var(--muted)}
+.foot{position:absolute;left:130px;bottom:60px;font-size:22px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:36px}
+.card h3{font-size:36px;margin:0 0 14px}
+.card p{font-size:28px;margin:0;line-height:1.4}
+.num{font-size:64px;font-weight:700;color:var(--blue);margin-bottom:10px}
+.tag{display:inline-block;font-size:24px;padding:6px 16px;border-radius:999px;border:1px solid var(--line);margin-right:12px;color:var(--muted)}
+.red{color:var(--red)}.green{color:var(--green)}.amber{color:var(--amber)}
+table{width:100%;border-collapse:collapse;font-size:30px}
+td,th{padding:22px 18px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:24px;text-transform:uppercase;letter-spacing:1.5px}
+code{font-family:ui-monospace,Menlo,monospace;font-size:.9em;background:#1b2440;padding:2px 10px;border-radius:8px}
+.mock{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:34px;font-size:26px}
+.mock .row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
+.mock .row:last-child{border:0}
+.chip{font-family:ui-monospace,Menlo,monospace;font-size:22px;background:#1b2440;border:1px solid var(--line);border-radius:8px;padding:4px 10px;margin-left:8px}
+.ev{font-family:ui-monospace,Menlo,monospace;font-size:22px;padding:10px 0;border-bottom:1px solid var(--line)}
+.btn{display:inline-block;background:var(--blue);color:#05111f;font-weight:700;border-radius:12px;padding:16px 26px;font-size:26px;margin-top:24px}
+</style></head><body>
+
+<section class="slide" id="cover">
+  <div class="grid2" style="grid-template-columns:1.15fr .85fr;align-items:center;height:100%">
+    <div>
+      <div class="kicker">Vultr Agent Rush · Blast Radius Zero</div>
+      <h1>Signed Scope<br>Agent</h1>
+      <p style="font-size:40px;max-width:900px">The agent proposes a scope. A person approves it. Every run ends with a signed receipt and a destroyed sandbox.</p>
+      <div style="margin-top:40px"><span class="tag">Vultr Cloud Compute</span><span class="tag">Vultr Serverless Inference</span></div>
+    </div>
+    <div>
+      <div class="mock">
+        <div style="font-size:22px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:14px">Approved scope</div>
+        <div class="row"><span class="muted">Domains</span><span><span class="chip">acme-industrial.demo</span></span></div>
+        <div class="row"><span class="muted">Methods</span><span><span class="chip">GET</span></span></div>
+        <div class="row"><span class="muted">Writes</span><span><span class="chip">/work</span></span></div>
+        <div class="row"><span class="muted">Caps</span><span>0.5 CPU · 256 MB · 20 s</span></div>
+        <div class="ev red" style="margin-top:14px">BLOCKED  collect.exfil-demo.net</div>
+        <div class="ev red">CONTAINED  rm -rf / · fork loop</div>
+        <div class="ev green" style="border:0">SIGNED  ed25519 · sandbox destroyed</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>Agents that read the open web<br>need a smaller blast radius</h2>
+  <div class="grid2">
+    <div class="card"><h3>Hidden instructions</h3><p>Supplier pages can carry text that only an AI agent will read, telling it to leak secrets or rank one vendor first.</p></div>
+    <div class="card"><h3>Silent data leaks</h3><p>A tracking pixel or script on the page can send data to a server nobody approved.</p></div>
+    <div class="card"><h3>Hostile files</h3><p>"Run our pricing calculator" is a normal request in procurement. The script can do anything.</p></div>
+    <div class="card"><h3>No proof afterwards</h3><p>When something goes wrong, nobody can show what the agent touched, wrote or tried to reach.</p></div>
+  </div>
+  <div class="foot">Buyer: vendor risk and procurement analysts who check supplier sites and price sheets every day.</div>
+</section>
+
+<section class="slide">
+  <div class="kicker">How it works</div>
+  <h2>Four steps, every run</h2>
+  <div class="grid4">
+    <div class="card"><div class="num">1</div><h3>Propose</h3><p>A model on Vultr Serverless Inference proposes the narrowest scope: domains, methods, writable paths, CPU, memory and time. Code clamps it.</p></div>
+    <div class="card"><div class="num">2</div><h3>Approve</h3><p>A person approves once. The scope is hashed. Anything outside it later needs a person again, through a scope-change card.</p></div>
+    <div class="card"><div class="num">3</div><h3>Contain</h3><p>A fresh sandbox is built to exactly that scope. The only way out is a proxy that checks and logs every request.</p></div>
+    <div class="card"><div class="num">4</div><h3>Prove</h3><p>Every process, file write and network attempt goes into an Ed25519-signed receipt. The sandbox is destroyed and the receipt says so.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The demo</div>
+  <h2>One vendor check, three containment moments</h2>
+  <table>
+    <tr><th>Supplier</th><th>What it tries</th><th>What stops it</th></tr>
+    <tr><td>acme-industrial.demo</td><td>Points to a certificate registry outside the scope</td><td class="green">Scope-change card. The agent waits for a person.</td></tr>
+    <tr><td>borealis-parts.demo</td><td>Hidden text asks agents to send API keys out. A pixel calls an outside server.</td><td class="red">Injection flagged and ignored. Pixel blocked by the proxy.</td></tr>
+    <tr><td>cobalt-fasteners.demo</td><td>Its "pricing calculator" runs <code>rm -rf /</code> and a fork loop</td><td class="red">No network, read-only root, 64-process cap, time cap. Clean retry.</td></tr>
+  </table>
+  <p class="muted" style="margin-top:40px">Result: a supplier comparison where every value is quoted from its source, plus a receipt anyone can verify offline.</p>
+</section>
+
+<section class="slide">
+  <div class="kicker">Containment layers</div>
+  <h2>Each layer fails closed</h2>
+  <div class="grid2">
+    <div class="card"><h3>Network</h3><p>Per-run Docker network created with <code>--internal</code>. The scope proxy is the only exit. TLS tunnels refused. Code containers get <code>--network none</code>.</p></div>
+    <div class="card"><h3>Filesystem</h3><p>Read-only root. Writes only to a small tmpfs at <code>/work</code>. Inputs mounted read-only.</p></div>
+    <div class="card"><h3>Process</h3><p>All capabilities dropped, no-new-privileges, unprivileged user, CPU, memory and 64-process caps, wall-clock kill of the whole process group.</p></div>
+    <div class="card"><h3>Lifetime</h3><p>Every container and the network are removed at the end. The teardown is checked and the result is written into the signed receipt.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The receipt</div>
+  <h2>Proof you do not have to take on trust</h2>
+  <div class="grid2" style="align-items:start">
+    <div>
+      <p>The receipt is canonical JSON: the task, the approved scope and its hash, every amendment, every event with its verdict, the results, the model used and whether the sandbox was destroyed.</p>
+      <p>It is signed with Ed25519. Change one verdict and the signature fails.</p>
+    </div>
+    <div class="mock" style="font-family:ui-monospace,Menlo,monospace;font-size:24px;line-height:1.6">
+      $ python verify.py receipt.json &lt;pubkey&gt;<br>
+      <span class="green">OK: signature valid</span><br>
+      run 91cfee0b2f  scope 1fb233633ab4<br>
+      events 41  blocked network attempts 1<br>
+      sandbox destroyed True
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="kicker">How Vultr runs this</div>
+  <h2>Built on Vultr end to end</h2>
+  <div class="grid2">
+    <div class="card"><h3 style="color:var(--blue)">Vultr Cloud Compute</h3><p>Ubuntu 24.04 instance running the control app, the Docker engine that builds and destroys each sandbox, and Caddy for HTTPS. One cloud-init script sets it all up from the public repo.</p></div>
+    <div class="card"><h3 style="color:var(--blue)">Vultr Serverless Inference</h3><p>Every model call: proposing the scope, screening pages for prompt injection, extracting terms with source quotes, and writing the analysis code that then runs in the sandbox. OpenAI-compatible API.</p></div>
+  </div>
+  <p class="muted" style="margin-top:40px">The model name is shown in the app and written into every receipt.</p>
+</section>
+
+<section class="slide">
+  <div class="kicker">What's next</div>
+  <h2>From demo to daily use</h2>
+  <div class="grid2">
+    <div class="card"><h3>Stronger isolation</h3><p>Swap Docker for microVMs (Firecracker or gVisor) per run, with the same scope contract.</p></div>
+    <div class="card"><h3>Real browsing</h3><p>A headless browser behind a TLS-terminating scope proxy, so HTTPS supplier sites can be in scope.</p></div>
+    <div class="card"><h3>Receipts that travel</h3><p>Store receipts in Vultr Object Storage and attach them to the vendor file for audit.</p></div>
+    <div class="card"><h3>Scope templates</h3><p>Reusable, pre-approved scopes per team, so routine checks need one click.</p></div>
+  </div>
+  <div class="foot">github.com/jskinner-bizai/signed-scope-agent · MIT license</div>
+</section>
+</body></html>
